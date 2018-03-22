@@ -152,31 +152,41 @@ class RN(BasicModel):
         n_channels = x.size()[1]
         d = x.size()[2]
         # x_flat = (64 x 25 x 24)
-        # 25 is from the 5x5 size image, each pixel is now a co-ordinate
+        # 25 is from the 5x5 size image
         x_flat = x.view(mb,n_channels,d*d).permute(0,2,1)
         
         # add coordinates
-        # x_flat is (64 x 25 x 26)
+        # x_flat = (64 x 25 x 24)
+        # coord_tensor = (64 x 25 x 2)
+        # thus:
+        # x_flat is now = (64 x 25 x 26)
         x_flat = torch.cat([x_flat, self.coord_tensor], 2)
         
         
         # add question everywhere
+        #qst = [64, 11]
         qst = torch.unsqueeze(qst, 1)
+        #qst = [64, 1, 11]
         qst = qst.repeat(1,25,1)
+        #qst = [64, 25, 11]
         qst = torch.unsqueeze(qst, 2)
-        
+        #qst = [64, 25, 1, 11]
+
         # cast all pairs against each other
-        x_i = torch.unsqueeze(x_flat,1) # (64x1x25x26+11)
-        x_i = x_i.repeat(1,25,1,1) # (64x25x25x26+11)
-        x_j = torch.unsqueeze(x_flat,2) # (64x25x1x26+11)
-        x_j = torch.cat([x_j,qst],3)
-        x_j = x_j.repeat(1,1,25,1) # (64x25x25x26+11)
+        x_i = torch.unsqueeze(x_flat,1) # (64x1x25x26)
+        x_i = x_i.repeat(1,25,1,1) # (64x25x25x26)
+
+        x_j = torch.unsqueeze(x_flat,2) # (64x25x1x26)
+        x_j = torch.cat([x_j,qst],3) # (64x25x1x(26+11))
+        x_j = x_j.repeat(1,1,25,1) # (64x25x25x(26+11))
         
         # concatenate all together
-        x_full = torch.cat([x_i,x_j],3) # (64x25x25x2*26+11)
+        x_full = torch.cat([x_i,x_j],3) # (64x25x25x(2*26+11))
         
         # reshape for passing through network
-        x_ = x_full.view(mb*d*d*d*d,63)
+        #last dim is the only one you care about as it has the channel/features dimension
+        #which is 24 for each image + 2 for the co-ordinates (for each img) + 11 for the question
+        x_ = x_full.view(mb*d*d*d*d,63) #(63 == (2*26+11))
         x_ = self.g_fc1(x_)
         x_ = F.relu(x_)
         x_ = self.g_fc2(x_)
