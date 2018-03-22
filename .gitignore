@@ -101,4 +101,7 @@ ENV/
 .mypy_cache/
 
 #data
-data
+sort-of-clevr/data
+sort-of-clevr/checkpoints
+babi/data
+babi/checkpoints
