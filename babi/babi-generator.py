@@ -45,7 +45,8 @@ def files_to_examples(files):
                         for i, sf in enumerate(supporting_facts):
                             sf = ' '.join(sf.split()[1:]).strip().replace('.', ' .').lower()
                             supporting_facts[i] = sf
-                        examples.append({'q':question, 'sf':supporting_facts, 'a':answer, 't':task})
+                            
+                        examples.append({'q':question, 'sfs':supporting_facts, 'a':answer, 't':task})
                 #then clear temp and add new data point
                 temp = []
                 temp.append(d)
@@ -70,21 +71,23 @@ def files_to_examples(files):
                     for i, sf in enumerate(supporting_facts):
                         sf = ' '.join(sf.split()[1:]).strip().replace('.', ' .').lower()
                         supporting_facts[i] = sf
-                    examples.append({'q':question, 'sf':supporting_facts, 'a':answer, 't':task})
+                    examples.append({'q':question, 'sfs':supporting_facts, 'a':answer, 't':task})
 
     return examples
 
 def pad_supporting_facts(examples):
     max_sfs = 0
     for example in examples:
-        sfs = example['sf']
+        sfs = example['sfs']
         if len(sfs) > max_sfs:
             max_sfs = len(sfs)
 
     for example in examples:
-        while len(example['sf']) < max_sfs:
-            example['sf'] = example['sf'] + [PAD_TOKEN]
-        assert len(example['sf']) == max_sfs
+        for i in range(max_sfs):
+            if i < len(example['sfs']):
+                example[f'sf{i}'] = example['sfs'][i]
+            else:
+                example[f'sf{i}'] = PAD_TOKEN
 
     return examples
 
