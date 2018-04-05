@@ -6,7 +6,7 @@ Implementation of the bAbi task from [A simple neural network module for relatio
 
 The model will run until the `test_loss` has not improved for 3 epochs.
 
-The paper is pretty light of details for the bAbi task, it does state:
+The paper is pretty light on the details for the bAbi task. However, it does state:
 
 - uses the 20 previous sentences
 - each sentence fed through a 32 unit LSTM, which is shared across all sentences
