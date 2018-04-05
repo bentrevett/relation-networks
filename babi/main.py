@@ -10,6 +10,8 @@ from torchtext.data import BucketIterator
 
 from tqdm import tqdm
 
+import sys
+
 import models
 
 #constants 
@@ -75,7 +77,7 @@ print(model)
 
 #initialize optimizer, scheduler and loss function
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters())
+optimizer = optim.Adam(model.parameters(), lr=2e-4)
 scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, patience=0, verbose=True)
 
 #place on GPU
@@ -137,6 +139,9 @@ while True:
     test_acc = epoch_acc / len(test_iter)
     test_loss = epoch_loss / len(test_iter)
 
+    #update scheduler
+    #scheduler.step(test_loss)
+
     #print metrics
     print(f'Epoch: {epoch}') 
     print(f'Train Loss: {train_loss:.3f}, Train Acc.: {train_acc*100:.2f}%')
@@ -146,7 +151,7 @@ while True:
         best_test_loss = test_loss
         train_patience_count = 1
     else:
-        print(f'Losing patience... {train_patience_count}/{TRAIN_PATIENCE}')
+        print(f'Losing patience... {train_patience_count}/3')
         train_patience_count += 1
 
     if train_patience_count > 3:

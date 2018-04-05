@@ -7,32 +7,37 @@ class RelationNetwork(nn.Module):
     def __init__(self, q_vocab_size, sf_vocab_size, a_vocab_size):
         super().__init__()
 
-        self.q_embbeding = nn.Embedding(q_vocab_size,32)
-        self.sf_embedding = nn.Embedding(sf_vocab_size,32)
+        dropout = 0.1
 
-        self.q_rnn = nn.LSTM(32, 32)
-        self.sf_rnn = nn.LSTM(32, 32)
+        self.embedding = nn.Embedding(q_vocab_size, 32)
+        #self.sf_embedding = nn.Embedding(sf_vocab_size, 32)
+
+        self.q_rnn = nn.LSTM(32, 32, dropout=dropout)
+        self.sf_rnn = nn.LSTM(32, 32, dropout=dropout)
         
-        self.g1 = nn.Linear(32*3,256)
-        self.g2 = nn.Linear(256,256)
-        self.g3 = nn.Linear(256,256)
-        self.g4 = nn.Linear(256,256)
+        self.g1 = nn.Linear(32*3, 256)
+        self.g2 = nn.Linear(256, 256)
+        self.g3 = nn.Linear(256, 256)
+        self.g4 = nn.Linear(256, 256)
 
-        self.f1 = nn.Linear(256,256)
-        self.f2 = nn.Linear(256,512)
-        self.f3 = nn.Linear(512,a_vocab_size)
+        self.f1 = nn.Linear(256, 256)
+        self.f2 = nn.Linear(256, 512)
+        self.f3 = nn.Linear(512, a_vocab_size)
+
+        self.do = nn.Dropout(dropout)
 
     def forward(self, q, sf0, sf1, sf2, sf3, sf4, sf5, sf6, sf7):
 
-        q = self.q_embbeding(q).permute(1, 0, 2)
-        sf0 = self.sf_embedding(sf0).permute(1, 0, 2)
-        sf1 = self.sf_embedding(sf1).permute(1, 0, 2)
-        sf2 = self.sf_embedding(sf2).permute(1, 0, 2)
-        sf3 = self.sf_embedding(sf3).permute(1, 0, 2)
-        sf4 = self.sf_embedding(sf4).permute(1, 0, 2)
-        sf5 = self.sf_embedding(sf5).permute(1, 0, 2)
-        sf6 = self.sf_embedding(sf6).permute(1, 0, 2)
-        sf7 = self.sf_embedding(sf7).permute(1, 0, 2)
+        q = self.do(self.embedding(q).permute(1, 0, 2))
+        
+        sf0 = self.do(self.embedding(sf0).permute(1, 0, 2))
+        sf1 = self.do(self.embedding(sf1).permute(1, 0, 2))
+        sf2 = self.do(self.embedding(sf2).permute(1, 0, 2))
+        sf3 = self.do(self.embedding(sf3).permute(1, 0, 2))
+        sf4 = self.do(self.embedding(sf4).permute(1, 0, 2))
+        sf5 = self.do(self.embedding(sf5).permute(1, 0, 2))
+        sf6 = self.do(self.embedding(sf6).permute(1, 0, 2))
+        sf7 = self.do(self.embedding(sf7).permute(1, 0, 2))
 
         _, (emb_q, _) = self.q_rnn(q)
 
@@ -52,21 +57,20 @@ class RelationNetwork(nn.Module):
         if torch.cuda.is_available():
             g_o = g_o.cuda()
 
-        for i, _ in enumerate(emb_sfs):
-            o_i = emb_sfs[i]
-            for j, _ in enumerate(emb_sfs):
-                o_j = emb_sfs[j]
-                #print(o_i.shape)
-                #print(o_j.shape)
-                #print(emb_q.shape)
-                x = F.relu(self.g1(torch.cat((o_i,o_j,emb_q),2)))
-                x = F.relu(self.g2(x))
-                x = F.relu(self.g3(x))
-                x = F.relu(self.g4(x))
-                g_o.add(x)
+        emb_q = emb_q.squeeze(0)
 
-        x = F.relu(self.f1(g_o))
-        x = F.relu(self.f2(x))
+        for i, _ in enumerate(emb_sfs):
+            o_i = emb_sfs[i].squeeze(0)
+            for j, _ in enumerate(emb_sfs):
+                o_j = emb_sfs[j].squeeze(0)
+                x = self.do(F.relu(self.g1(torch.cat((o_i,o_j,emb_q),1))))
+                x = self.do(F.relu(self.g2(x)))
+                x = self.do(F.relu(self.g3(x)))
+                x = self.do(F.relu(self.g4(x)))
+                g_o = g_o.add(x)
+
+        x = self.do(F.relu(self.f1(g_o)))
+        x = self.do(F.relu(self.f2(x)))
         x = self.f3(x)
 
         return x
