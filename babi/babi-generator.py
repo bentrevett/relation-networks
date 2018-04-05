@@ -1,7 +1,7 @@
 import os
 import json
 
-TASK_DIR = 'data/tasksv11/en'
+TASK_DIR = 'data/tasks_1-20_v1-1/tasksv11/en'
 
 PAD_TOKEN = '<pad>'
 
