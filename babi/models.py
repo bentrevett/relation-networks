@@ -7,15 +7,14 @@ class RelationNetwork(nn.Module):
     def __init__(self, q_vocab_size, sf_vocab_size, a_vocab_size):
         super().__init__()
 
-        dropout = 0.1
+        dropout = 0.25
 
         self.embedding = nn.Embedding(q_vocab_size, 32)
-        #self.sf_embedding = nn.Embedding(sf_vocab_size, 32)
 
         self.q_rnn = nn.LSTM(32, 32, dropout=dropout)
         self.sf_rnn = nn.LSTM(32, 32, dropout=dropout)
         
-        self.g1 = nn.Linear(32*3, 256)
+        self.g1 = nn.Linear(32*2+1, 256)
         self.g2 = nn.Linear(256, 256)
         self.g3 = nn.Linear(256, 256)
         self.g4 = nn.Linear(256, 256)
@@ -25,6 +24,12 @@ class RelationNetwork(nn.Module):
         self.f3 = nn.Linear(512, a_vocab_size)
 
         self.do = nn.Dropout(dropout)
+
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform(p)
+            else:
+                nn.init.constant(p, 0)
 
     def forward(self, q, sf0, sf1, sf2, sf3, sf4, sf5, sf6, sf7):
 
@@ -61,13 +66,14 @@ class RelationNetwork(nn.Module):
 
         for i, _ in enumerate(emb_sfs):
             o_i = emb_sfs[i].squeeze(0)
-            for j, _ in enumerate(emb_sfs):
-                o_j = emb_sfs[j].squeeze(0)
-                x = self.do(F.relu(self.g1(torch.cat((o_i,o_j,emb_q),1))))
-                x = self.do(F.relu(self.g2(x)))
-                x = self.do(F.relu(self.g3(x)))
-                x = self.do(F.relu(self.g4(x)))
-                g_o = g_o.add(x)
+            pos = Variable(torch.FloatTensor(o_i.shape[0], 1).fill_(i))
+            if torch.cuda.is_available():
+                pos = pos.cuda()
+            x = self.do(F.relu(self.g1(torch.cat((o_i,emb_q,pos),dim=1))))
+            x = self.do(F.relu(self.g2(x)))
+            x = self.do(F.relu(self.g3(x)))
+            x = self.do(F.relu(self.g4(x)))
+            g_o = g_o.add(x)
 
         x = self.do(F.relu(self.f1(g_o)))
         x = self.do(F.relu(self.f2(x)))

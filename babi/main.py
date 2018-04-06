@@ -86,6 +86,7 @@ if torch.cuda.is_available():
     criterion = criterion.cuda()
 
 best_test_loss = float('inf')
+best_test_acc = 0
 epoch = 0
 
 while True:
@@ -149,6 +150,7 @@ while True:
 
     if test_loss < best_test_loss:
         best_test_loss = test_loss
+        best_test_acc = test_acc
         train_patience_count = 1
     else:
         print(f'Losing patience... {train_patience_count}/3')
@@ -156,4 +158,6 @@ while True:
 
     if train_patience_count > 3:
         print('Lost patience!')
+        print(f'Best test loss: {best_test_loss}')
+        print(f'Best test acc: {best_test_acc}')
         sys.exit(0)
